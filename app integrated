@@ -1,0 +1,430 @@
+"""
+ShowKaalam - Integrated Movie Recommendation and Booking System
+Combines AI-powered recommendations with booking functionality
+"""
+
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+import sqlite3
+import qrcode
+import io
+import base64
+from datetime import datetime, timedelta
+import os
+import pandas as pd
+from model.recommender import MovieRecommender
+
+app = Flask(__name__)
+app.secret_key = 'showkaalam-secret-key-2024'
+
+# Initialize the AI recommender
+recommender = MovieRecommender('database/movies.db')
+
+def init_database():
+    """
+    Initialize the SQLite database with movies and booking data
+    """
+    conn = sqlite3.connect('database/movies.db')
+    cursor = conn.cursor()
+    
+    # Create movies table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS movies (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            genre TEXT,
+            description TEXT,
+            director TEXT,
+            cast TEXT,
+            poster_url TEXT,
+            duration INTEGER,
+            rating TEXT
+        )
+    ''')
+    
+    # Create theatres table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS theatres (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            location TEXT,
+            total_seats INTEGER DEFAULT 100
+        )
+    ''')
+    
+    # Create showtimes table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS showtimes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            movie_id INTEGER,
+            theatre_id INTEGER,
+            show_date DATE,
+            show_time TIME,
+            price DECIMAL(10,2),
+            FOREIGN KEY (movie_id) REFERENCES movies (id),
+            FOREIGN KEY (theatre_id) REFERENCES theatres (id)
+        )
+    ''')
+    
+    # Create seats table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS seats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            showtime_id INTEGER,
+            seat_number TEXT,
+            is_booked BOOLEAN DEFAULT FALSE,
+            booking_id INTEGER,
+            FOREIGN KEY (showtime_id) REFERENCES showtimes (id),
+            FOREIGN KEY (booking_id) REFERENCES bookings (id)
+        )
+    ''')
+    
+    # Create bookings table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS bookings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            movie_id INTEGER,
+            showtime_id INTEGER,
+            seat_numbers TEXT,
+            total_amount DECIMAL(10,2),
+            payment_method TEXT,
+            booking_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            customer_name TEXT,
+            customer_email TEXT,
+            FOREIGN KEY (movie_id) REFERENCES movies (id),
+            FOREIGN KEY (showtime_id) REFERENCES showtimes (id)
+        )
+    ''')
+    
+    conn.commit()
+    conn.close()
+
+def populate_sample_data():
+    """
+    Populate database with sample Malayalam movies and showtimes
+    """
+    conn = sqlite3.connect('database/movies.db')
+    cursor = conn.cursor()
+    
+    # Check if data already exists
+    cursor.execute('SELECT COUNT(*) FROM movies')
+    if cursor.fetchone()[0] > 0:
+        conn.close()
+        return
+    
+    # Insert sample movies
+    movies = [
+        ('Drishyam', 'Thriller', 'A father goes to extreme lengths to protect his family after his daughter commits a crime', 'Mohanlal', 'Mohanlal, Meena, Ansiba Hassan', '/static/posters/drishyam.jpg', 160, 'U/A'),
+        ('Manichitrathazhu', 'Horror', 'A newlywed couple moves into a haunted mansion with a dark past', 'Fazil', 'Mohanlal, Shobana, Vincent', '/static/posters/manichitrathazhu.jpg', 180, 'U/A'),
+        ('Chemmeen', 'Romance', 'A tragic love story between a fisherman and a woman from a different caste', 'Ramu Kariat', 'Sathyan, Sheela, Kottarakkara Sreedharan Nair', '/static/posters/chemmeen.jpg', 120, 'U'),
+        ('Spadikam', 'Action', 'A rebellious young man\'s journey from childhood to adulthood', 'Bhadran', 'Mohanlal, Urvashi, Thilakan', '/static/posters/spadikam.jpg', 150, 'U/A'),
+        ('Kireedam', 'Drama', 'A young man\'s life changes when he intervenes in a fight', 'Sibi Malayil', 'Mohanlal, Parvathy, Thilakan', '/static/posters/kireedam.jpg', 140, 'U/A'),
+        ('Thaniyavarthanam', 'Drama', 'A teacher struggles with mental illness and societal stigma', 'Sibi Malayil', 'Mohanlal, Shobana, Murali', '/static/posters/thaniyavarthanam.jpg', 130, 'U/A'),
+        ('Chithram', 'Comedy', 'A man pretends to be married to avoid his family\'s pressure', 'Priyadarshan', 'Mohanlal, Ranjini, Kanaka', '/static/posters/chithram.jpg', 120, 'U'),
+        ('Vadakkunokkiyantram', 'Comedy', 'A man\'s obsession with his neighbor leads to comedic situations', 'Sathyan Anthikad', 'Mohanlal, Shobana, Jagathy Sreekumar', '/static/posters/vadakkunokkiyantram.jpg', 110, 'U'),
+        ('Devasuram', 'Action', 'A powerful man\'s fall from grace and his path to redemption', 'I.V. Sasi', 'Mohanlal, Revathi, Innocent', '/static/posters/devasuram.jpg', 170, 'U/A'),
+        ('Thoovanathumbikal', 'Romance', 'A complex love triangle involving a man and two women', 'P. Padmarajan', 'Mohanlal, Parvathy, Sumalatha', '/static/posters/thoovanathumbikal.jpg', 160, 'U/A')
+    ]
+    
+    cursor.executemany('''
+        INSERT INTO movies (title, genre, description, director, cast, poster_url, duration, rating)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', movies)
+    
+    # Insert theatres
+    theatres = [
+        ('PVR Cinemas', 'Kochi', 100),
+        ('INOX', 'Thiruvananthapuram', 120),
+        ('Cinepolis', 'Kozhikode', 80),
+        ('Sree Padmanabha Theatre', 'Thiruvananthapuram', 150)
+    ]
+    
+    cursor.executemany('''
+        INSERT INTO theatres (name, location, total_seats)
+        VALUES (?, ?, ?)
+    ''', theatres)
+    
+    # Insert showtimes
+    today = datetime.now().date()
+    showtimes = []
+    for movie_id in range(1, 11):  # 10 movies
+        for theatre_id in range(1, 5):  # 4 theatres
+            for time_slot in ['10:00', '14:00', '18:00', '22:00']:
+                showtimes.append((movie_id, theatre_id, today, time_slot, 150.00))
+                showtimes.append((movie_id, theatre_id, today + timedelta(days=1), time_slot, 150.00))
+    
+    cursor.executemany('''
+        INSERT INTO showtimes (movie_id, theatre_id, show_date, show_time, price)
+        VALUES (?, ?, ?, ?, ?)
+    ''', showtimes)
+    
+    # Initialize seats for each showtime
+    cursor.execute('SELECT id FROM showtimes')
+    showtime_ids = cursor.fetchall()
+    
+    for (showtime_id,) in showtime_ids:
+        for row in range(1, 11):  # 10 rows
+            for seat in range(1, 11):  # 10 seats per row
+                seat_number = f"{chr(64 + row)}{seat:02d}"  # A01, A02, etc.
+                cursor.execute('''
+                    INSERT INTO seats (showtime_id, seat_number, is_booked)
+                    VALUES (?, ?, FALSE)
+                ''', (showtime_id, seat_number))
+    
+    conn.commit()
+    conn.close()
+
+@app.route('/')
+def home():
+    """
+    Homepage with search functionality and movie listings
+    """
+    conn = sqlite3.connect('database/movies.db')
+    cursor = conn.cursor()
+    
+    # Get all movies for display
+    cursor.execute('''
+        SELECT id, title, genre, description, poster_url, rating, duration
+        FROM movies
+        ORDER BY title
+    ''')
+    
+    movies = cursor.fetchall()
+    conn.close()
+    
+    return render_template('home.html', movies=movies)
+
+@app.route('/search')
+def search():
+    """
+    Search for movies
+    """
+    query = request.args.get('q', '')
+    if not query:
+        return redirect(url_for('home'))
+    
+    # Use the AI recommender to search movies
+    if not recommender.movies_df is not None:
+        recommender.load_movies_from_db()
+    
+    search_results = recommender.search_movies(query)
+    
+    return render_template('home.html', movies=search_results, search_query=query)
+
+@app.route('/movie/<int:movie_id>')
+def movie_details(movie_id):
+    """
+    Movie details page with recommendations and booking options
+    """
+    conn = sqlite3.connect('database/movies.db')
+    cursor = conn.cursor()
+    
+    # Get movie details
+    cursor.execute('SELECT * FROM movies WHERE id = ?', (movie_id,))
+    movie = cursor.fetchone()
+    
+    if not movie:
+        flash('Movie not found!', 'error')
+        return redirect(url_for('home'))
+    
+    # Get showtimes for this movie
+    cursor.execute('''
+        SELECT s.id, s.show_date, s.show_time, s.price, t.name as theatre_name, t.location
+        FROM showtimes s
+        JOIN theatres t ON s.theatre_id = t.id
+        WHERE s.movie_id = ? AND s.show_date >= DATE('now')
+        ORDER BY s.show_date, s.show_time
+    ''', (movie_id,))
+    
+    showtimes = cursor.fetchall()
+    conn.close()
+    
+    return render_template('movie_details.html', movie=movie, showtimes=showtimes)
+
+@app.route('/recommendations/<int:movie_id>')
+def get_recommendations(movie_id):
+    """
+    Get AI-powered movie recommendations
+    """
+    conn = sqlite3.connect('database/movies.db')
+    cursor = conn.cursor()
+    
+    # Get movie title
+    cursor.execute('SELECT title FROM movies WHERE id = ?', (movie_id,))
+    movie = cursor.fetchone()
+    conn.close()
+    
+    if not movie:
+        flash('Movie not found!', 'error')
+        return redirect(url_for('home'))
+    
+    # Initialize recommender if not already done
+    if not recommender.movies_df is not None:
+        if not recommender.initialize_system():
+            flash('Recommendation system not available', 'error')
+            return redirect(url_for('movie_details', movie_id=movie_id))
+    
+    # Get recommendations
+    recommendations = recommender.get_recommendations(movie[0], top_n=5)
+    
+    # Ensure recommendations is always a list
+    if not recommendations:
+        recommendations = []
+    
+    return render_template('recommendation.html', 
+                         movie_title=movie[0], 
+                         recommendations=recommendations)
+
+@app.route('/booking/<int:showtime_id>')
+def booking(showtime_id):
+    """
+    Seat selection and booking page
+    """
+    conn = sqlite3.connect('database/movies.db')
+    cursor = conn.cursor()
+    
+    # Get showtime details
+    cursor.execute('''
+        SELECT s.*, m.title, m.poster_url, t.name as theatre_name, t.location
+        FROM showtimes s
+        JOIN movies m ON s.movie_id = m.id
+        JOIN theatres t ON s.theatre_id = t.id
+        WHERE s.id = ?
+    ''', (showtime_id,))
+    
+    showtime = cursor.fetchone()
+    
+    if not showtime:
+        flash('Showtime not found!', 'error')
+        return redirect(url_for('home'))
+    
+    # Get seat availability
+    cursor.execute('''
+        SELECT seat_number, is_booked
+        FROM seats
+        WHERE showtime_id = ?
+        ORDER BY seat_number
+    ''', (showtime_id,))
+    
+    seats = cursor.fetchall()
+    conn.close()
+    
+    return render_template('booking.html', showtime=showtime, seats=seats)
+
+@app.route('/api/book_seats', methods=['POST'])
+def book_seats():
+    """
+    API endpoint to book seats
+    """
+    data = request.json
+    showtime_id = data['showtime_id']
+    selected_seats = data['seats']
+    customer_name = data['customer_name']
+    customer_email = data['customer_email']
+    payment_method = data['payment_method']
+    
+    conn = sqlite3.connect('database/movies.db')
+    cursor = conn.cursor()
+    
+    try:
+        # Get showtime details for pricing
+        cursor.execute('SELECT price FROM showtimes WHERE id = ?', (showtime_id,))
+        price_per_seat = cursor.fetchone()[0]
+        total_amount = price_per_seat * len(selected_seats)
+        
+        # Create booking
+        cursor.execute('''
+            INSERT INTO bookings (movie_id, showtime_id, seat_numbers, total_amount, payment_method, customer_name, customer_email)
+            VALUES ((SELECT movie_id FROM showtimes WHERE id = ?), ?, ?, ?, ?, ?, ?)
+        ''', (showtime_id, showtime_id, ','.join(selected_seats), total_amount, payment_method, customer_name, customer_email))
+        
+        booking_id = cursor.lastrowid
+        
+        # Mark seats as booked
+        for seat in selected_seats:
+            cursor.execute('''
+                UPDATE seats SET is_booked = TRUE, booking_id = ?
+                WHERE showtime_id = ? AND seat_number = ?
+            ''', (booking_id, showtime_id, seat))
+        
+        conn.commit()
+        
+        return jsonify({
+            'success': True,
+            'booking_id': booking_id,
+            'total_amount': total_amount
+        })
+        
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+    
+    finally:
+        conn.close()
+
+@app.route('/confirmation/<int:booking_id>')
+def confirmation(booking_id):
+    """
+    Booking confirmation page with QR code
+    """
+    conn = sqlite3.connect('database/movies.db')
+    cursor = conn.cursor()
+    
+    # Get booking details
+    cursor.execute('''
+        SELECT b.*, m.title, m.poster_url, t.name as theatre_name, t.location,
+               s.show_date, s.show_time, s.price
+        FROM bookings b
+        JOIN movies m ON b.movie_id = m.id
+        JOIN theatres t ON s.theatre_id = t.id
+        JOIN showtimes s ON b.showtime_id = s.id
+        WHERE b.id = ?
+    ''', (booking_id,))
+    
+    booking = cursor.fetchone()
+    conn.close()
+    
+    if not booking:
+        flash('Booking not found!', 'error')
+        return redirect(url_for('home'))
+    
+    # Generate QR code
+    qr_data = f"""
+ShowKaalam - When It's Showtime, It's ShowKaalam
+
+Movie: {booking[7]}
+Theatre: {booking[8]}
+Date: {booking[11]}
+Time: {booking[12]}
+Seats: {booking[3]}
+Total: ₹{booking[4]}
+Booking ID: {booking[0]}
+    """.strip()
+    
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Convert to base64 for HTML display
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    qr_code_base64 = base64.b64encode(buffer.getvalue()).decode()
+    
+    return render_template('confirmation.html', booking=booking, qr_code=qr_code_base64)
+
+if __name__ == '__main__':
+    # Initialize database
+    init_database()
+    populate_sample_data()
+    
+    # Initialize AI recommender
+    print("Initializing AI Recommendation System...")
+    if recommender.initialize_system():
+        print("AI System ready!")
+    else:
+        print("AI System initialization failed, but booking system will work")
+    
+    # Start Flask app
+    app.run(debug=True, host='0.0.0.0', port=5000)
