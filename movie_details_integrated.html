@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block title %}{{ movie[1] }} - ShowKaalam{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Movie Header -->
+    <div class="row mb-5">
+        <div class="col-md-4">
+            <div class="movie-poster-large">
+                <div class="poster-container">
+                    <i class="fas fa-film fa-5x"></i>
+                    <div class="genre-badge-large">{{ movie[2] }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <h1 class="movie-title-large mb-3">{{ movie[1] }}</h1>
+            <div class="movie-meta mb-4">
+                <span class="badge bg-primary me-2">{{ movie[2] }}</span>
+                <span class="badge bg-success me-2">{{ movie[7] }} Rating</span>
+                <span class="badge bg-info">{{ movie[8] }} min</span>
+            </div>
+            <h5>Director</h5>
+            <p class="text-muted mb-3">{{ movie[4] }}</p>
+            <h5>Cast</h5>
+            <p class="text-muted mb-4">{{ movie[5] }}</p>
+            <h5>Description</h5>
+            <p class="movie-description">{{ movie[3] }}</p>
+            
+            <!-- Action Buttons -->
+            <div class="mt-4">
+                <a href="{{ url_for('get_recommendations', movie_id=movie[0]) }}" class="btn btn-primary btn-lg me-3">
+                    <i class="fas fa-brain me-2"></i>Get AI Recommendations
+                </a>
+                <button class="btn btn-success btn-lg" onclick="scrollToShowtimes()">
+                    <i class="fas fa-ticket-alt me-2"></i>Book Tickets
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Showtimes Section -->
+    <div class="showtimes-section" id="showtimes">
+        <h2 class="section-title mb-4">
+            <i class="fas fa-calendar-alt me-2"></i>Available Showtimes
+        </h2>
+        
+        {% if showtimes %}
+        <div class="row">
+            {% for showtime in showtimes %}
+            <div class="col-lg-6 col-md-12 mb-4">
+                <div class="showtime-card">
+                    <div class="showtime-header">
+                        <h5 class="theatre-name">{{ showtime.theatre_name }}</h5>
+                        <span class="location">{{ showtime.location }}</span>
+                    </div>
+                    <div class="showtime-details">
+                        <div class="showtime-info">
+                            <div class="date-time">
+                                <i class="fas fa-calendar me-2"></i>
+                                <strong>{{ showtime.show_date }}</strong>
+                            </div>
+                            <div class="time">
+                                <i class="fas fa-clock me-2"></i>
+                                <strong>{{ showtime.show_time }}</strong>
+                            </div>
+                            <div class="price">
+                                <i class="fas fa-rupee-sign me-2"></i>
+                                <strong>₹{{ showtime.price }}</strong>
+                            </div>
+                        </div>
+                        <div class="availability">
+                            <span class="available-seats">{{ showtime.available_seats }} seats available</span>
+                        </div>
+                        <div class="showtime-actions">
+                            <a href="{{ url_for('booking', showtime_id=showtime.id) }}" class="btn btn-primary">
+                                <i class="fas fa-ticket-alt me-1"></i>Select Seats
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">No showtimes available</h4>
+            <p class="text-muted">Please check back later for available showtimes.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- AI Recommendations Section -->
+    {% if recommendations %}
+    <div class="recommendations-section mt-5">
+        <h2 class="section-title mb-4">
+            <i class="fas fa-brain me-2"></i>You Might Also Like
+        </h2>
+        <div class="row">
+            {% for rec in recommendations %}
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="recommendation-card-small">
+                    <div class="rec-poster">
+                        <i class="fas fa-film"></i>
+                        <div class="rec-genre-badge">{{ rec[2] }}</div>
+                    </div>
+                    <div class="rec-info">
+                        <h6 class="rec-title">{{ rec[1] }}</h6>
+                        <p class="rec-director">{{ rec[4] }}</p>
+                        <p class="rec-description">{{ rec[3][:80] }}...</p>
+                        <div class="rec-actions">
+                            <a href="{{ url_for('movie_details', movie_id=rec[0]) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-info-circle me-1"></i>Details
+                            </a>
+                            <a href="{{ url_for('get_recommendations', movie_id=rec[0]) }}" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-brain me-1"></i>Similar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="text-center mt-4">
+            <a href="{{ url_for('get_recommendations', movie_id=movie[0]) }}" class="btn btn-outline-primary btn-lg">
+                <i class="fas fa-brain me-2"></i>View All Recommendations
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Back to Gallery -->
+    <div class="text-center mt-5">
+        <a href="{{ url_for('home') }}" class="btn btn-outline-primary btn-lg">
+            <i class="fas fa-arrow-left me-2"></i>Back to Movie Gallery
+        </a>
+    </div>
+</div>
+
+<style>
+.movie-poster-large {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    text-align: center;
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.poster-container {
+    position: relative;
+}
+
+.genre-badge-large {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: rgba(255, 107, 53, 0.9);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.movie-title-large {
+    color: var(--accent-color);
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+
+.movie-description {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.showtime-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.showtime-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(255, 107, 53, 0.5);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.showtime-header {
+    margin-bottom: 1rem;
+}
+
+.theatre-name {
+    color: var(--accent-color);
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.location {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+}
+
+.showtime-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.showtime-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.date-time, .time, .price {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.95rem;
+}
+
+.available-seats {
+    color: #28a745;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.recommendation-card-small {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.recommendation-card-small:hover {
+    transform: translateY(-5px);
+    border-color: rgba(255, 107, 53, 0.5);
+}
+
+.rec-poster {
+    height: 120px;
+    background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    color: white;
+    font-size: 1.5rem;
+}
+
+.rec-genre-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255, 107, 53, 0.9);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+
+.rec-info {
+    padding: 1rem;
+}
+
+.rec-title {
+    color: var(--accent-color);
+    font-weight: bold;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.rec-director {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+}
+
+.rec-description {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.8rem;
+    line-height: 1.4;
+    margin-bottom: 1rem;
+}
+
+.rec-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .movie-title-large {
+        font-size: 2rem;
+    }
+    
+    .showtime-details {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .rec-actions {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+function scrollToShowtimes() {
+    document.getElementById('showtimes').scrollIntoView({
+        behavior: 'smooth'
+    });
+}
+</script>
+{% endblock %}

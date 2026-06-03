@@ -1,0 +1,1000 @@
+{% extends "base.html" %}
+
+{% block title %}Recommendations for {{ movie[1] }} - ShowKaalam{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header -->
+    <div class="recommendation-header text-center mb-5">
+        <h1 class="recommendation-title">AI Recommendations</h1>
+        <p class="recommendation-subtitle">Based on your interest in <strong>"{{ movie[1] }}"</strong></p>
+        <div class="ai-badge">
+            <i class="fas fa-brain me-2"></i>Powered by AI
+        </div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="recommendations-section">
+        <h2 class="section-title">Movies You Might Like</h2>
+        <div class="row">
+            {% if recommendations and recommendations|length > 0 %}
+                {% for rec in recommendations %}
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="recommendation-card">
+                        <div class="recommendation-poster">
+                            <i class="fas fa-film"></i>
+                        </div>
+                        <div class="recommendation-info">
+                            <h3 class="recommendation-title">{{ rec[1] or 'Unknown Title' }}</h3>
+                            <div class="similarity-score">
+                                <span class="badge bg-success">Similar Genre</span>
+                            </div>
+                            <span class="recommendation-genre">{{ rec[2] or 'Unknown Genre' }}</span>
+                            <p class="recommendation-description">{{ (rec[3] or 'No description available')[:100] }}...</p>
+                            <div class="recommendation-meta">
+                                <small class="text-muted">
+                                    <i class="fas fa-user me-1"></i>{{ rec[4] or 'Unknown Director' }}<br>
+                                    <i class="fas fa-users me-1"></i>{{ (rec[5] or 'Unknown Cast')[:50] }}...<br>
+                                    <i class="fas fa-clock me-1"></i>{{ rec[8] or 120 }} min | 
+                                    <i class="fas fa-star me-1"></i>{{ rec[7] or 'U/A' }}
+                                </small>
+                            </div>
+                            <div class="recommendation-actions">
+                                <a href="{{ url_for('movie_details', movie_id=rec[0]) }}" class="btn btn-primary btn-sm me-2">
+                                    <i class="fas fa-info-circle me-1"></i>View Details
+                                </a>
+                                <a href="{{ url_for('get_recommendations', movie_id=rec[0]) }}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-brain me-1"></i>More Like This
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12">
+                    <div class="text-center py-5">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">No recommendations available</h4>
+                        <p class="text-muted">Unable to generate recommendations at this time. Please try again later.</p>
+                        <a href="{{ url_for('home') }}" class="btn btn-primary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Movies
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Back to Movie -->
+    <div class="text-center mt-5">
+        <a href="{{ url_for('home') }}" class="btn btn-outline-primary btn-lg">
+            <i class="fas fa-arrow-left me-2"></i>Back to All Movies
+        </a>
+    </div>
+</div>
+
+<!-- Booking Modal -->
+<div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bookingModalLabel">
+                    <i class="fas fa-ticket-alt me-2"></i>Book Tickets
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Booking Progress -->
+                <div class="booking-progress mb-4">
+                    <div class="progress-steps">
+                        <div class="step active" data-step="1">
+                            <div class="step-icon">
+                                <i class="fas fa-chair"></i>
+                            </div>
+                            <div class="step-label">Select Seats</div>
+                        </div>
+                        <div class="step" data-step="2">
+                            <div class="step-icon">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="step-label">Customer Details</div>
+                        </div>
+                        <div class="step" data-step="3">
+                            <div class="step-icon">
+                                <i class="fas fa-credit-card"></i>
+                            </div>
+                            <div class="step-label">Payment</div>
+                        </div>
+                        <div class="step" data-step="4">
+                            <div class="step-icon">
+                                <i class="fas fa-ticket-alt"></i>
+                            </div>
+                            <div class="step-label">Confirmation</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Movie Info -->
+                <div class="movie-booking-info mb-4">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h4 id="modal-movie-title">Movie Title</h4>
+                            <div class="movie-meta">
+                                <span class="badge bg-primary me-2" id="modal-movie-genre">Genre</span>
+                                <span class="badge bg-success me-2" id="modal-movie-rating">Rating</span>
+                                <span class="badge bg-info" id="modal-movie-duration">Duration</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <div class="booking-summary">
+                                <h6>Booking Summary</h6>
+                                <div class="summary-item">
+                                    <span>Selected Seats:</span>
+                                    <span id="modal-selected-seats">None</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span>Total Amount:</span>
+                                    <span id="modal-total-amount">₹0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 1: Seat Selection -->
+                <div id="step1" class="booking-step">
+                    <h5 class="mb-3">Select Your Seats</h5>
+                    
+                    <!-- Screen -->
+                    <div class="screen mb-4">
+                        <div class="screen-display">
+                            <i class="fas fa-tv"></i> SCREEN
+                        </div>
+                    </div>
+
+                    <!-- Seat Legend -->
+                    <div class="seat-legend mb-4">
+                        <div class="legend-item">
+                            <div class="seat available"></div>
+                            <span>Available</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="seat selected"></div>
+                            <span>Selected</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="seat occupied"></div>
+                            <span>Occupied</span>
+                        </div>
+                    </div>
+
+                    <!-- Seat Grid -->
+                    <div class="seat-grid-container">
+                        <div class="seat-grid" id="modal-seat-grid">
+                            <!-- Seats will be generated by JavaScript -->
+                        </div>
+                        
+                        <!-- Seat Selection Summary -->
+                        <div class="seat-selection-summary">
+                            <h6>Selected Seats</h6>
+                            <div id="modal-selected-seats-display" class="selected-seats-list">
+                                <p class="text-muted">No seats selected</p>
+                            </div>
+                            <div class="seat-actions">
+                                <button class="btn btn-outline-primary btn-sm" onclick="clearModalSelection()">
+                                    <i class="fas fa-undo me-1"></i>Clear All
+                                </button>
+                                <button class="btn btn-outline-success btn-sm" onclick="selectModalRow('A')">
+                                    <i class="fas fa-layer-group me-1"></i>Select Row A
+                                </button>
+                                <button class="btn btn-outline-success btn-sm" onclick="selectModalRow('B')">
+                                    <i class="fas fa-layer-group me-1"></i>Select Row B
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Customer Details -->
+                <div id="step2" class="booking-step" style="display: none;">
+                    <h5 class="mb-3">Customer Details</h5>
+                    <form id="modal-booking-form">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="modal-customer-name" class="form-label">Full Name</label>
+                                    <input type="text" class="form-control" id="modal-customer-name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="modal-customer-email" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="modal-customer-email" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="modal-customer-phone" class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-control" id="modal-customer-phone" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="modal-showtime" class="form-label">Select Showtime</label>
+                                    <select class="form-select" id="modal-showtime" required>
+                                        <option value="">Choose showtime</option>
+                                        <option value="1">Today - 10:00 AM</option>
+                                        <option value="2">Today - 2:00 PM</option>
+                                        <option value="3">Today - 6:00 PM</option>
+                                        <option value="4">Today - 10:00 PM</option>
+                                        <option value="5">Tomorrow - 10:00 AM</option>
+                                        <option value="6">Tomorrow - 2:00 PM</option>
+                                        <option value="7">Tomorrow - 6:00 PM</option>
+                                        <option value="8">Tomorrow - 10:00 PM</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Step 3: Payment -->
+                <div id="step3" class="booking-step" style="display: none;">
+                    <h5 class="mb-3">Payment Details</h5>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">Payment Method</label>
+                        <div class="payment-methods">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="modal-payment-method" id="modal-cash" value="Cash" checked>
+                                <label class="form-check-label payment-option" for="modal-cash">
+                                    <i class="fas fa-money-bill-wave me-2"></i>Cash
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="modal-payment-method" id="modal-card" value="Card">
+                                <label class="form-check-label payment-option" for="modal-card">
+                                    <i class="fas fa-credit-card me-2"></i>Card
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="modal-payment-method" id="modal-upi" value="UPI">
+                                <label class="form-check-label payment-option" for="modal-upi">
+                                    <i class="fas fa-mobile-alt me-2"></i>UPI
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Details Section -->
+                    <div id="modal-payment-details" class="payment-details-section" style="display: none;">
+                        <h6 class="mb-3">Payment Details</h6>
+                        
+                        <!-- Card Payment -->
+                        <div id="modal-card-payment" class="payment-form" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label for="modal-card-number" class="form-label">Card Number</label>
+                                        <input type="text" class="form-control" id="modal-card-number" placeholder="1234 5678 9012 3456" maxlength="19">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="modal-cvv" class="form-label">CVV</label>
+                                        <input type="text" class="form-control" id="modal-cvv" placeholder="123" maxlength="4">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="modal-expiry-month" class="form-label">Expiry Month</label>
+                                        <select class="form-select" id="modal-expiry-month">
+                                            <option value="">Month</option>
+                                            <option value="01">01</option>
+                                            <option value="02">02</option>
+                                            <option value="03">03</option>
+                                            <option value="04">04</option>
+                                            <option value="05">05</option>
+                                            <option value="06">06</option>
+                                            <option value="07">07</option>
+                                            <option value="08">08</option>
+                                            <option value="09">09</option>
+                                            <option value="10">10</option>
+                                            <option value="11">11</option>
+                                            <option value="12">12</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="modal-expiry-year" class="form-label">Expiry Year</label>
+                                        <select class="form-select" id="modal-expiry-year">
+                                            <option value="">Year</option>
+                                            <option value="2024">2024</option>
+                                            <option value="2025">2025</option>
+                                            <option value="2026">2026</option>
+                                            <option value="2027">2027</option>
+                                            <option value="2028">2028</option>
+                                            <option value="2029">2029</option>
+                                            <option value="2030">2030</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="modal-cardholder-name" class="form-label">Cardholder Name</label>
+                                <input type="text" class="form-control" id="modal-cardholder-name" placeholder="John Doe">
+                            </div>
+                        </div>
+
+                        <!-- UPI Payment -->
+                        <div id="modal-upi-payment" class="payment-form" style="display: none;">
+                            <div class="mb-3">
+                                <label for="modal-upi-id" class="form-label">UPI ID</label>
+                                <input type="text" class="form-control" id="modal-upi-id" placeholder="yourname@paytm">
+                            </div>
+                            <div class="mb-3">
+                                <label for="modal-upi-app" class="form-label">UPI App</label>
+                                <select class="form-select" id="modal-upi-app">
+                                    <option value="">Select UPI App</option>
+                                    <option value="PhonePe">PhonePe</option>
+                                    <option value="Google Pay">Google Pay</option>
+                                    <option value="Paytm">Paytm</option>
+                                    <option value="BHIM">BHIM</option>
+                                    <option value="Amazon Pay">Amazon Pay</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Confirmation -->
+                <div id="step4" class="booking-step" style="display: none;">
+                    <div class="text-center">
+                        <div class="success-icon mb-3">
+                            <i class="fas fa-check-circle fa-5x text-success"></i>
+                        </div>
+                        <h4 class="text-success mb-3">Booking Confirmed!</h4>
+                        <p class="text-muted mb-4">Your tickets have been booked successfully</p>
+                        
+                        <!-- QR Code -->
+                        <div class="qr-section mb-4">
+                            <h6>Your Digital Ticket</h6>
+                            <div class="qr-container">
+                                <img id="modal-qr-code" src="" alt="QR Code" class="qr-image">
+                            </div>
+                            <p class="text-muted">Show this QR code at the theatre entrance</p>
+                        </div>
+                        
+                        <!-- Booking Details -->
+                        <div class="booking-details-confirmation">
+                            <h6>Booking Details</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Movie:</strong> <span id="confirmation-movie"></span></p>
+                                    <p><strong>Showtime:</strong> <span id="confirmation-showtime"></span></p>
+                                    <p><strong>Seats:</strong> <span id="confirmation-seats"></span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Customer:</strong> <span id="confirmation-customer"></span></p>
+                                    <p><strong>Amount:</strong> <span id="confirmation-amount"></span></p>
+                                    <p><strong>Booking ID:</strong> <span id="confirmation-booking-id"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="modal-next-btn" onclick="nextStep()">Next</button>
+                <button type="button" class="btn btn-success" id="modal-book-btn" onclick="processBooking()" style="display: none;">
+                    <i class="fas fa-ticket-alt me-1"></i>Complete Booking
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.recommendation-header {
+    background: linear-gradient(135deg, rgba(255,107,53,0.1), rgba(0,78,137,0.1));
+    padding: 40px;
+    border-radius: 20px;
+    border: 2px solid rgba(255,107,53,0.3);
+}
+
+.recommendation-title {
+    color: var(--accent-color);
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.recommendation-subtitle {
+    font-size: 1.2rem;
+    opacity: 0.8;
+    margin-bottom: 20px;
+}
+
+.ai-badge {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 25px;
+    display: inline-block;
+    font-weight: bold;
+}
+
+.recommendation-card {
+    background: var(--card-bg);
+    border-radius: 15px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+}
+
+.recommendation-card:hover {
+    transform: translateY(-10px);
+    border-color: var(--primary-color);
+    box-shadow: 0 15px 35px rgba(255,107,53,0.3);
+}
+
+.recommendation-poster {
+    height: 200px;
+    background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: white;
+}
+
+.recommendation-info {
+    padding: 20px;
+}
+
+.recommendation-title {
+    color: var(--accent-color);
+    font-weight: bold;
+    font-size: 1.3rem;
+    margin-bottom: 10px;
+}
+
+.similarity-score {
+    margin-bottom: 10px;
+}
+
+.recommendation-genre {
+    background: var(--primary-color);
+    color: white;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    display: inline-block;
+    margin-bottom: 10px;
+}
+
+.recommendation-description {
+    line-height: 1.4;
+    margin-bottom: 15px;
+    color: rgba(255,255,255,0.8);
+}
+
+.recommendation-meta {
+    margin-bottom: 15px;
+}
+
+.recommendation-actions {
+    display: flex;
+    gap: 10px;
+}
+
+@media (max-width: 768px) {
+    .recommendation-title {
+        font-size: 2rem;
+    }
+    
+    .recommendation-poster {
+        height: 150px;
+        font-size: 1.5rem;
+    }
+}
+
+/* Modal-specific styles */
+.modal-content {
+    background: var(--card-bg);
+    color: white;
+    border: 2px solid rgba(255,255,255,0.1);
+}
+
+.modal-header {
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.modal-footer {
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.booking-step {
+    min-height: 400px;
+}
+
+.movie-booking-info {
+    background: rgba(255,255,255,0.05);
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.booking-details-confirmation {
+    background: rgba(255,255,255,0.05);
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    margin-top: 20px;
+}
+
+.qr-section {
+    background: rgba(255,255,255,0.05);
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.qr-container {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    margin: 15px auto;
+    max-width: 200px;
+}
+
+.qr-image {
+    max-width: 100%;
+    height: auto;
+}
+</style>
+
+<script>
+// Global variables for modal booking
+let modalSelectedSeats = [];
+let modalCurrentStep = 1;
+let modalMovieData = {};
+let modalPricePerSeat = 150; // Default price
+let modalBookingId = null;
+
+// Open booking modal
+function openBookingModal(movieId, title, genre, duration, rating) {
+    modalMovieData = {
+        id: movieId,
+        title: title,
+        genre: genre,
+        duration: duration,
+        rating: rating
+    };
+    
+    // Reset modal state
+    modalSelectedSeats = [];
+    modalCurrentStep = 1;
+    modalBookingId = null;
+    
+    // Update movie info
+    document.getElementById('modal-movie-title').textContent = title;
+    document.getElementById('modal-movie-genre').textContent = genre;
+    document.getElementById('modal-movie-rating').textContent = rating;
+    document.getElementById('modal-movie-duration').textContent = duration + ' min';
+    
+    // Generate seat grid
+    generateModalSeatGrid();
+    
+    // Reset steps
+    updateModalProgress(1);
+    showModalStep(1);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('bookingModal'));
+    modal.show();
+}
+
+// Generate seat grid for modal
+function generateModalSeatGrid() {
+    const seatGrid = document.getElementById('modal-seat-grid');
+    seatGrid.innerHTML = '';
+    
+    // Generate 100 seats (10 rows x 10 seats)
+    for (let row = 1; row <= 10; row++) {
+        for (let seat = 1; seat <= 10; seat++) {
+            const seatNumber = `${String.fromCharCode(64 + row)}${seat.toString().padStart(2, '0')}`;
+            const isOccupied = Math.random() < 0.3; // 30% chance of being occupied
+            
+            const seatElement = document.createElement('div');
+            seatElement.className = `seat ${isOccupied ? 'occupied' : 'available'}`;
+            seatElement.dataset.seat = seatNumber;
+            seatElement.dataset.booked = isOccupied;
+            seatElement.dataset.row = String.fromCharCode(64 + row);
+            seatElement.dataset.number = seat.toString();
+            seatElement.onclick = () => selectModalSeat(seatNumber, isOccupied);
+            
+            seatElement.innerHTML = `
+                <span class="seat-number">${seatNumber}</span>
+                <span class="seat-status">
+                    <i class="fas fa-${isOccupied ? 'times' : 'check'}"></i>
+                </span>
+            `;
+            
+            seatGrid.appendChild(seatElement);
+        }
+    }
+}
+
+// Select seat in modal
+function selectModalSeat(seatNumber, isBooked) {
+    if (isBooked) {
+        alert('This seat is already booked');
+        return;
+    }
+    
+    const seatElement = document.querySelector(`#modal-seat-grid [data-seat="${seatNumber}"]`);
+    
+    if (modalSelectedSeats.includes(seatNumber)) {
+        // Deselect seat
+        modalSelectedSeats = modalSelectedSeats.filter(seat => seat !== seatNumber);
+        seatElement.classList.remove('selected');
+        seatElement.classList.add('available');
+    } else {
+        // Select seat
+        modalSelectedSeats.push(seatNumber);
+        seatElement.classList.remove('available');
+        seatElement.classList.add('selected');
+    }
+    
+    updateModalBookingSummary();
+}
+
+// Update modal booking summary
+function updateModalBookingSummary() {
+    const selectedSeatsElement = document.getElementById('modal-selected-seats');
+    const totalAmountElement = document.getElementById('modal-total-amount');
+    const selectedSeatsDisplay = document.getElementById('modal-selected-seats-display');
+    
+    if (modalSelectedSeats.length > 0) {
+        selectedSeatsElement.textContent = modalSelectedSeats.join(', ');
+        totalAmountElement.textContent = `₹${modalSelectedSeats.length * modalPricePerSeat}`;
+        
+        // Update detailed seat display
+        selectedSeatsDisplay.innerHTML = `
+            <div class="selected-seats-grid">
+                ${modalSelectedSeats.map(seat => `
+                    <div class="selected-seat-item">
+                        <span class="seat-badge">${seat}</span>
+                        <button class="btn-remove-seat" onclick="removeModalSeat('${seat}')">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="seat-total">
+                <strong>Total: ₹${modalSelectedSeats.length * modalPricePerSeat}</strong>
+            </div>
+        `;
+    } else {
+        selectedSeatsElement.textContent = 'None';
+        totalAmountElement.textContent = '₹0';
+        selectedSeatsDisplay.innerHTML = '<p class="text-muted">No seats selected</p>';
+    }
+}
+
+// Clear modal selection
+function clearModalSelection() {
+    modalSelectedSeats.forEach(seatNumber => {
+        const seatElement = document.querySelector(`#modal-seat-grid [data-seat="${seatNumber}"]`);
+        if (seatElement) {
+            seatElement.classList.remove('selected');
+            seatElement.classList.add('available');
+        }
+    });
+    modalSelectedSeats = [];
+    updateModalBookingSummary();
+}
+
+// Select modal row
+function selectModalRow(rowLetter) {
+    const rowSeats = document.querySelectorAll(`#modal-seat-grid [data-row="${rowLetter}"]`);
+    const availableSeats = Array.from(rowSeats).filter(seat => 
+        !seat.classList.contains('occupied') && !seat.classList.contains('selected')
+    );
+    
+    if (availableSeats.length === 0) {
+        alert(`No available seats in row ${rowLetter}`);
+        return;
+    }
+    
+    availableSeats.forEach(seatElement => {
+        const seatNumber = seatElement.dataset.seat;
+        if (!modalSelectedSeats.includes(seatNumber)) {
+            modalSelectedSeats.push(seatNumber);
+            seatElement.classList.remove('available');
+            seatElement.classList.add('selected');
+        }
+    });
+    
+    updateModalBookingSummary();
+}
+
+// Remove modal seat
+function removeModalSeat(seatNumber) {
+    const seatElement = document.querySelector(`#modal-seat-grid [data-seat="${seatNumber}"]`);
+    if (seatElement) {
+        seatElement.classList.remove('selected');
+        seatElement.classList.add('available');
+    }
+    modalSelectedSeats = modalSelectedSeats.filter(seat => seat !== seatNumber);
+    updateModalBookingSummary();
+}
+
+// Update modal progress
+function updateModalProgress(step) {
+    const steps = document.querySelectorAll('#bookingModal .step');
+    steps.forEach((stepElement, index) => {
+        stepElement.classList.remove('active', 'completed');
+        if (index + 1 < step) {
+            stepElement.classList.add('completed');
+        } else if (index + 1 === step) {
+            stepElement.classList.add('active');
+        }
+    });
+}
+
+// Show modal step
+function showModalStep(step) {
+    // Hide all steps
+    document.querySelectorAll('.booking-step').forEach(stepElement => {
+        stepElement.style.display = 'none';
+    });
+    
+    // Show current step
+    document.getElementById(`step${step}`).style.display = 'block';
+    
+    // Update button visibility
+    const nextBtn = document.getElementById('modal-next-btn');
+    const bookBtn = document.getElementById('modal-book-btn');
+    
+    if (step === 4) {
+        nextBtn.style.display = 'none';
+        bookBtn.style.display = 'inline-block';
+    } else {
+        nextBtn.style.display = 'inline-block';
+        bookBtn.style.display = 'none';
+    }
+}
+
+// Next step
+function nextStep() {
+    if (modalCurrentStep === 1) {
+        if (modalSelectedSeats.length === 0) {
+            alert('Please select at least one seat');
+            return;
+        }
+        updateModalProgress(2);
+        showModalStep(2);
+        modalCurrentStep = 2;
+    } else if (modalCurrentStep === 2) {
+        // Validate customer details
+        const name = document.getElementById('modal-customer-name').value.trim();
+        const email = document.getElementById('modal-customer-email').value.trim();
+        const phone = document.getElementById('modal-customer-phone').value.trim();
+        const showtime = document.getElementById('modal-showtime').value;
+        
+        if (!name || !email || !phone || !showtime) {
+            alert('Please fill in all required fields');
+            return;
+        }
+        
+        if (!isValidEmail(email)) {
+            alert('Please enter a valid email address');
+            return;
+        }
+        
+        updateModalProgress(3);
+        showModalStep(3);
+        modalCurrentStep = 3;
+        
+        // Setup payment method handlers
+        setupModalPaymentHandlers();
+    } else if (modalCurrentStep === 3) {
+        // Validate payment details
+        const paymentMethod = document.querySelector('input[name="modal-payment-method"]:checked').value;
+        
+        if (paymentMethod !== 'Cash') {
+            if (!validateModalPaymentDetails(paymentMethod)) {
+                return;
+            }
+        }
+        
+        updateModalProgress(4);
+        showModalStep(4);
+        modalCurrentStep = 4;
+        
+        // Generate confirmation details
+        generateModalConfirmation();
+    }
+}
+
+// Setup payment handlers
+function setupModalPaymentHandlers() {
+    document.querySelectorAll('input[name="modal-payment-method"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const paymentDetails = document.getElementById('modal-payment-details');
+            const allPaymentForms = document.querySelectorAll('#modal-payment-details .payment-form');
+            
+            allPaymentForms.forEach(form => form.style.display = 'none');
+            
+            if (this.value === 'Cash') {
+                paymentDetails.style.display = 'none';
+            } else {
+                paymentDetails.style.display = 'block';
+                
+                const paymentFormId = this.value.toLowerCase() + '-payment';
+                const paymentForm = document.getElementById(`modal-${paymentFormId}`);
+                if (paymentForm) {
+                    paymentForm.style.display = 'block';
+                }
+            }
+        });
+    });
+}
+
+// Validate payment details
+function validateModalPaymentDetails(paymentMethod) {
+    switch(paymentMethod) {
+        case 'Card':
+            const cardNumber = document.getElementById('modal-card-number').value.replace(/\s/g, '');
+            const cvv = document.getElementById('modal-cvv').value;
+            const expiryMonth = document.getElementById('modal-expiry-month').value;
+            const expiryYear = document.getElementById('modal-expiry-year').value;
+            const cardholderName = document.getElementById('modal-cardholder-name').value.trim();
+            
+            if (cardNumber.length < 16) {
+                alert('Please enter a valid card number');
+                return false;
+            }
+            if (cvv.length < 3) {
+                alert('Please enter a valid CVV');
+                return false;
+            }
+            if (!expiryMonth || !expiryYear) {
+                alert('Please select expiry date');
+                return false;
+            }
+            if (!cardholderName) {
+                alert('Please enter cardholder name');
+                return false;
+            }
+            break;
+            
+        case 'UPI':
+            const upiId = document.getElementById('modal-upi-id').value.trim();
+            const upiApp = document.getElementById('modal-upi-app').value;
+            
+            if (!upiId || !upiId.includes('@')) {
+                alert('Please enter a valid UPI ID');
+                return false;
+            }
+            if (!upiApp) {
+                alert('Please select a UPI app');
+                return false;
+            }
+            break;
+    }
+    
+    return true;
+}
+
+// Generate confirmation details
+function generateModalConfirmation() {
+    const name = document.getElementById('modal-customer-name').value;
+    const email = document.getElementById('modal-customer-email').value;
+    const showtime = document.getElementById('modal-showtime');
+    const showtimeText = showtime.options[showtime.selectedIndex].text;
+    const paymentMethod = document.querySelector('input[name="modal-payment-method"]:checked').value;
+    
+    // Generate booking ID
+    modalBookingId = 'BK' + Date.now().toString().slice(-6);
+    
+    // Update confirmation details
+    document.getElementById('confirmation-movie').textContent = modalMovieData.title;
+    document.getElementById('confirmation-showtime').textContent = showtimeText;
+    document.getElementById('confirmation-seats').textContent = modalSelectedSeats.join(', ');
+    document.getElementById('confirmation-customer').textContent = name;
+    document.getElementById('confirmation-amount').textContent = `₹${modalSelectedSeats.length * modalPricePerSeat}`;
+    document.getElementById('confirmation-booking-id').textContent = modalBookingId;
+    
+    // Generate QR code
+    generateModalQRCode();
+}
+
+// Generate QR code for modal
+function generateModalQRCode() {
+    const qrData = `ShowKaalam Booking
+Movie: ${modalMovieData.title}
+Seats: ${modalSelectedSeats.join(', ')}
+Amount: ₹${modalSelectedSeats.length * modalPricePerSeat}
+Booking ID: ${modalBookingId}
+Customer: ${document.getElementById('modal-customer-name').value}`;
+    
+    // Create QR code using a simple method (in real app, use a QR library)
+    const qrCodeImg = document.getElementById('modal-qr-code');
+    qrCodeImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
+}
+
+// Process booking
+function processBooking() {
+    // Simulate booking processing
+    const bookBtn = document.getElementById('modal-book-btn');
+    const originalText = bookBtn.innerHTML;
+    bookBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+    bookBtn.disabled = true;
+    
+    // Simulate API call
+    setTimeout(() => {
+        // In a real app, this would save to database
+        console.log('Booking processed:', {
+            movieId: modalMovieData.id,
+            seats: modalSelectedSeats,
+            customer: {
+                name: document.getElementById('modal-customer-name').value,
+                email: document.getElementById('modal-customer-email').value,
+                phone: document.getElementById('modal-customer-phone').value
+            },
+            showtime: document.getElementById('modal-showtime').value,
+            paymentMethod: document.querySelector('input[name="modal-payment-method"]:checked').value,
+            totalAmount: modalSelectedSeats.length * modalPricePerSeat,
+            bookingId: modalBookingId
+        });
+        
+        // Show success message
+        alert('Booking completed successfully! Your booking ID is: ' + modalBookingId);
+        
+        // Reset form
+        bookBtn.innerHTML = originalText;
+        bookBtn.disabled = false;
+        
+        // Close modal after 3 seconds
+        setTimeout(() => {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('bookingModal'));
+            modal.hide();
+        }, 3000);
+        
+    }, 2000);
+}
+
+// Email validation
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
+// Initialize modal when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Add card number formatting
+    document.addEventListener('input', function(e) {
+        if (e.target.id === 'modal-card-number') {
+            let value = e.target.value.replace(/\s/g, '').replace(/[^0-9]/gi, '');
+            let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+            e.target.value = formattedValue;
+        }
+        
+        if (e.target.id === 'modal-cvv') {
+            e.target.value = e.target.value.replace(/[^0-9]/gi, '');
+        }
+    });
+});
+</script>
+{% endblock %}

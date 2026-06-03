@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block title %}Booking Confirmation - ShowKaalam{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Success Header -->
+    <div class="success-header text-center mb-5">
+        <div class="success-icon mb-3">
+            <i class="fas fa-check-circle fa-5x text-success"></i>
+        </div>
+        <h1 class="success-title">Booking Confirmed!</h1>
+        <p class="success-subtitle">Your tickets have been booked successfully</p>
+    </div>
+
+    <!-- Ticket Details -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="ticket-details">
+                <h3 class="ticket-title mb-4">
+                    <i class="fas fa-ticket-alt me-2"></i>Ticket Details
+                </h3>
+                
+                <div class="ticket-info">
+                    <div class="info-row">
+                        <div class="info-label">Movie</div>
+                        <div class="info-value">{{ booking['movie_title'] }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Theatre</div>
+                        <div class="info-value">{{ booking['theatre_name'] }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Date & Time</div>
+                        <div class="info-value">{{ booking['show_date'] }} at {{ booking['show_time'] }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Seats</div>
+                        <div class="info-value">{{ booking['seat_numbers'] }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Total Amount</div>
+                        <div class="info-value amount">₹{{ booking['total_amount'] }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Payment Method</div>
+                        <div class="info-value">{{ booking['payment_method'] }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Booking ID</div>
+                        <div class="info-value booking-id">{{ booking['booking_id'] }}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Customer</div>
+                        <div class="info-value">{{ booking['customer_name'] }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="qr-section">
+                <h4 class="qr-title mb-3">
+                    <i class="fas fa-qrcode me-2"></i>Digital Ticket
+                </h4>
+                <div class="qr-container">
+                    <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code" class="qr-image">
+                </div>
+                <p class="qr-instructions">
+                    Show this QR code at the theatre entrance for entry
+                </p>
+                
+                <!-- Download Options -->
+                <div class="download-options mt-4">
+                    <button class="btn btn-outline-primary btn-sm me-2" onclick="downloadTicket()">
+                        <i class="fas fa-download me-1"></i>Download
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" onclick="printTicket()">
+                        <i class="fas fa-print me-1"></i>Print
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Important Notes -->
+    <div class="important-notes mt-5">
+        <div class="notes-header">
+            <h4><i class="fas fa-info-circle me-2"></i>Important Information</h4>
+        </div>
+        <div class="notes-content">
+            <ul>
+                <li>Please arrive at the theatre at least 15 minutes before the show time</li>
+                <li>Carry a valid ID proof along with this ticket</li>
+                <li>The QR code will be scanned at the entrance</li>
+                <li>No refunds or cancellations are allowed</li>
+                <li>For any queries, contact our customer support</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons text-center mt-5">
+        <a href="{{ url_for('home') }}" class="btn btn-primary btn-lg me-3">
+            <i class="fas fa-home me-2"></i>Back to Home
+        </a>
+        <button class="btn btn-success btn-lg" onclick="shareTicket()">
+            <i class="fas fa-share me-2"></i>Share Ticket
+        </button>
+    </div>
+</div>
+
+<style>
+.success-header {
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(25, 135, 84, 0.1));
+    padding: 40px;
+    border-radius: 20px;
+    border: 2px solid rgba(40, 167, 69, 0.3);
+}
+
+.success-title {
+    color: var(--accent-color);
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.success-subtitle {
+    font-size: 1.2rem;
+    opacity: 0.8;
+}
+
+.ticket-details {
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.ticket-title {
+    color: var(--accent-color);
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 15px;
+}
+
+.ticket-info {
+    margin-top: 20px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-weight: bold;
+    color: var(--accent-color);
+    min-width: 150px;
+}
+
+.info-value {
+    color: white;
+    text-align: right;
+}
+
+.info-value.amount {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.info-value.booking-id {
+    font-family: monospace;
+    background: rgba(255,255,255,0.1);
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+
+.qr-section {
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    text-align: center;
+}
+
+.qr-title {
+    color: var(--accent-color);
+}
+
+.qr-container {
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.qr-image {
+    max-width: 200px;
+    width: 100%;
+    height: auto;
+}
+
+.qr-instructions {
+    color: rgba(255,255,255,0.8);
+    font-size: 0.9rem;
+    margin-bottom: 0;
+}
+
+.important-notes {
+    background: rgba(255, 193, 7, 0.1);
+    border: 2px solid rgba(255, 193, 7, 0.3);
+    border-radius: 15px;
+    padding: 25px;
+}
+
+.notes-header h4 {
+    color: var(--accent-color);
+    margin-bottom: 20px;
+}
+
+.notes-content ul {
+    margin-bottom: 0;
+    padding-left: 20px;
+}
+
+.notes-content li {
+    margin-bottom: 10px;
+    color: rgba(255,255,255,0.9);
+}
+
+.download-options {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+@media (max-width: 768px) {
+    .success-title {
+        font-size: 2rem;
+    }
+    
+    .info-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .info-value {
+        text-align: left;
+    }
+    
+    .download-options {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+function downloadTicket() {
+    // Create a canvas to generate downloadable ticket
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 400;
+    canvas.height = 600;
+    
+    // Background
+    ctx.fillStyle = '#2d2d2d';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Title
+    ctx.fillStyle = '#ffd23f';
+    ctx.font = 'bold 24px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('SHOWKAALAM', canvas.width/2, 40);
+    
+    // Tagline
+    ctx.fillStyle = '#004e89';
+    ctx.font = '14px Arial';
+    ctx.fillText('When It\'s Showtime, It\'s ShowKaalam', canvas.width/2, 65);
+    
+    // Movie details
+    ctx.fillStyle = 'white';
+    ctx.font = '16px Arial';
+    ctx.fillText('{{ booking["movie_title"] }}', canvas.width/2, 100);
+    ctx.fillText('{{ booking["theatre_name"] }}', canvas.width/2, 130);
+    ctx.fillText('{{ booking["show_date"] }} at {{ booking["show_time"] }}', canvas.width/2, 160);
+    ctx.fillText('Seats: {{ booking["seat_numbers"] }}', canvas.width/2, 190);
+    ctx.fillText('Amount: ₹{{ booking["total_amount"] }}', canvas.width/2, 220);
+    ctx.fillText('Booking ID: {{ booking["booking_id"] }}', canvas.width/2, 250);
+    
+    // QR Code
+    const qrImg = new Image();
+    qrImg.onload = function() {
+        ctx.drawImage(qrImg, canvas.width/2 - 100, 300, 200, 200);
+        
+        // Download
+        const link = document.createElement('a');
+        link.download = 'ticket_{{ booking["booking_id"] }}.png';
+        link.href = canvas.toDataURL();
+        link.click();
+    };
+    qrImg.src = 'data:image/png;base64,{{ qr_code }}';
+}
+
+function printTicket() {
+    window.print();
+}
+
+function shareTicket() {
+    if (navigator.share) {
+        navigator.share({
+            title: 'ShowKaalam Ticket - {{ booking["movie_title"] }}',
+            text: 'Check out my ShowKaalam ticket for {{ booking["movie_title"] }}! When It\'s Showtime, It\'s ShowKaalam!',
+            url: window.location.href
+        });
+    } else {
+        // Fallback: copy to clipboard
+        const ticketText = `ShowKaalam - When It's Showtime, It's ShowKaalam\nMovie: {{ booking["movie_title"] }}\nTheatre: {{ booking["theatre_name"] }}\nDate: {{ booking["show_date"] }}\nTime: {{ booking["show_time"] }}\nSeats: {{ booking["seat_numbers"] }}\nAmount: ₹{{ booking["total_amount"] }}\nBooking ID: {{ booking["booking_id"] }}`;
+        navigator.clipboard.writeText(ticketText).then(() => {
+            alert('Ticket details copied to clipboard!');
+        });
+    }
+}
+
+// Auto-scroll to top
+window.scrollTo(0, 0);
+</script>
+{% endblock %}
+

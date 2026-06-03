@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+
+{% block title %}Movie Gallery - ShowKaalam{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <h1 class="hero-title">ShowKaalam</h1>
+        <p class="hero-subtitle">When It's Showtime, It's ShowKaalam - Discover the rich collection of Malayalam cinema</p>
+        <div class="hero-stats">
+            <div class="row text-center">
+                <div class="col-md-3">
+                    <div class="stat-item">
+                        <h3 class="stat-number">{{ movies|length }}</h3>
+                        <p class="stat-label">Movies</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-item">
+                        <h3 class="stat-number">{{ movies|map(attribute='2')|unique|list|length }}</h3>
+                        <p class="stat-label">Genres</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-item">
+                        <h3 class="stat-number">{{ movies|map(attribute='4')|unique|list|length }}</h3>
+                        <p class="stat-label">Directors</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-item">
+                        <h3 class="stat-number">20+</h3>
+                        <p class="stat-label">Years</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Search and Filter Section -->
+<section class="py-4" style="background: rgba(255,255,255,0.05);">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="search-container">
+                    <h4 class="text-white mb-3">
+                        {% if search_query %}
+                            Search Results for "{{ search_query }}"
+                        {% else %}
+                            Find Your Perfect Movie
+                        {% endif %}
+                    </h4>
+                    <form method="GET" action="{{ url_for('search') }}" class="d-flex">
+                        <div class="input-group">
+                            <input class="form-control form-control-lg" type="search" name="q" 
+                                   placeholder="Search by title, genre, director, or cast..." 
+                                   value="{{ request.args.get('q', '') }}">
+                            <button class="btn btn-primary btn-lg" type="submit">
+                                <i class="fas fa-search me-2"></i>Search
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="filter-container">
+                    <h5 class="text-white mb-3">Quick Filters</h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-outline-light btn-sm filter-btn" onclick="filterByGenre('All')">All</button>
+                        <button class="btn btn-outline-light btn-sm filter-btn" onclick="filterByGenre('Thriller')">Thriller</button>
+                        <button class="btn btn-outline-light btn-sm filter-btn" onclick="filterByGenre('Horror')">Horror</button>
+                        <button class="btn btn-outline-light btn-sm filter-btn" onclick="filterByGenre('Romance')">Romance</button>
+                        <button class="btn btn-outline-light btn-sm filter-btn" onclick="filterByGenre('Action')">Action</button>
+                        <button class="btn btn-outline-light btn-sm filter-btn" onclick="filterByGenre('Comedy')">Comedy</button>
+                        <button class="btn btn-outline-light btn-sm filter-btn" onclick="filterByGenre('Drama')">Drama</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Movies Gallery Section -->
+<section id="movies" class="py-5">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="section-title mb-0">
+                {% if search_query %}
+                    Search Results ({{ movies|length }} movies found)
+                {% else %}
+                    Movie Collection
+                {% endif %}
+            </h2>
+            <div class="sort-options">
+                <select class="form-select" id="sortSelect" onchange="sortMovies()">
+                    <option value="title">Sort by Title</option>
+                    <option value="genre">Sort by Genre</option>
+                    <option value="director">Sort by Director</option>
+                    <option value="year">Sort by Year</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="row" id="movies-container">
+            {% for movie in movies %}
+            <div class="col-lg-4 col-md-6 mb-4 movie-card-wrapper">
+                <div class="movie-card" data-title="{{ movie[1] }}" data-genre="{{ movie[2] }}" data-director="{{ movie[4] }}">
+                    <div class="movie-poster">
+                        <div class="poster-placeholder">
+                            <i class="fas fa-film"></i>
+                            <div class="genre-badge">{{ movie[2] }}</div>
+                        </div>
+                        <div class="movie-overlay">
+                            <div class="overlay-content">
+                                <h5 class="movie-title-overlay">{{ movie[1] }}</h5>
+                                <p class="movie-director">{{ movie[4] }}</p>
+                                <div class="overlay-actions">
+                                    <a href="{{ url_for('movie_details', movie_id=movie[0]) }}" class="btn btn-primary btn-sm me-2">
+                                        <i class="fas fa-info-circle me-1"></i>Details
+                                    </a>
+                                    <a href="{{ url_for('get_recommendations', movie_id=movie[0]) }}" class="btn btn-outline-light btn-sm">
+                                        <i class="fas fa-brain me-1"></i>Similar
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="movie-info">
+                        <h3 class="movie-title">{{ movie[1] }}</h3>
+                        <div class="movie-meta">
+                            <span class="movie-genre">{{ movie[2] }}</span>
+                            <span class="movie-director-info">
+                                <i class="fas fa-user me-1"></i>{{ movie[4] }}
+                            </span>
+                        </div>
+                        <p class="movie-description">{{ movie[3][:120] }}{% if movie[3]|length > 120 %}...{% endif %}</p>
+                        <div class="movie-cast">
+                            <small class="text-muted">
+                                <i class="fas fa-users me-1"></i>
+                                {{ movie[5][:50] }}{% if movie[5]|length > 50 %}...{% endif %}
+                            </small>
+                        </div>
+                        <div class="movie-actions mt-3">
+                            <a href="{{ url_for('movie_details', movie_id=movie[0]) }}" class="btn btn-primary btn-sm me-2">
+                                <i class="fas fa-info-circle me-1"></i>View Details
+                            </a>
+                            <a href="{{ url_for('get_recommendations', movie_id=movie[0]) }}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-brain me-1"></i>Get Recommendations
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if not movies %}
+        <div class="text-center py-5">
+            <div class="empty-state">
+                <i class="fas fa-search fa-4x text-muted mb-4"></i>
+                <h3 class="text-muted">No Movies Found</h3>
+                <p class="text-muted mb-4">
+                    {% if search_query %}
+                        No movies match your search criteria. Try different keywords or browse all movies.
+                    {% else %}
+                        No movies available at the moment. Please check back later.
+                    {% endif %}
+                </p>
+                {% if search_query %}
+                <a href="{{ url_for('home') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-arrow-left me-2"></i>View All Movies
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<style>
+.hero-stats {
+    margin-top: 2rem;
+}
+
+.stat-item {
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    margin-bottom: 1rem;
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #ff6b35;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 0;
+    font-size: 0.9rem;
+}
+
+.movie-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    height: 100%;
+}
+
+.movie-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 107, 53, 0.5);
+}
+
+.movie-poster {
+    position: relative;
+    height: 200px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.poster-placeholder {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.poster-placeholder i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.genre-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(255, 107, 53, 0.9);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 15px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.movie-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.movie-card:hover .movie-overlay {
+    opacity: 1;
+}
+
+.overlay-content {
+    text-align: center;
+    padding: 1rem;
+}
+
+.movie-title-overlay {
+    color: white;
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+
+.movie-director {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.movie-info {
+    padding: 1.5rem;
+}
+
+.movie-title {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: white;
+    margin-bottom: 0.75rem;
+    line-height: 1.3;
+}
+
+.movie-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.movie-genre {
+    background: rgba(255, 107, 53, 0.2);
+    color: #ff6b35;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.movie-director-info {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85rem;
+}
+
+.movie-description {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.movie-cast {
+    margin-bottom: 1rem;
+}
+
+.movie-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.empty-state {
+    padding: 3rem 0;
+}
+
+@media (max-width: 768px) {
+    .movie-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .movie-actions {
+        flex-direction: column;
+    }
+    
+    .stat-item {
+        margin-bottom: 0.5rem;
+    }
+}
+</style>
+
+<script>
+function filterByGenre(genre) {
+    const cards = document.querySelectorAll('.movie-card-wrapper');
+    
+    cards.forEach(card => {
+        const movieGenre = card.querySelector('.movie-card').dataset.genre;
+        
+        if (genre === 'All' || movieGenre === genre) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    // Update active filter button
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+}
+
+function sortMovies() {
+    const sortBy = document.getElementById('sortSelect').value;
+    const container = document.getElementById('movies-container');
+    const cards = Array.from(container.querySelectorAll('.movie-card-wrapper'));
+    
+    cards.sort((a, b) => {
+        const aData = a.querySelector('.movie-card').dataset;
+        const bData = b.querySelector('.movie-card').dataset;
+        
+        let aValue, bValue;
+        
+        switch(sortBy) {
+            case 'title':
+                aValue = aData.title.toLowerCase();
+                bValue = bData.title.toLowerCase();
+                break;
+            case 'genre':
+                aValue = aData.genre.toLowerCase();
+                bValue = bData.genre.toLowerCase();
+                break;
+            case 'director':
+                aValue = aData.director.toLowerCase();
+                bValue = bData.director.toLowerCase();
+                break;
+            default:
+                return 0;
+        }
+        
+        return aValue.localeCompare(bValue);
+    });
+    
+    // Re-append sorted cards
+    cards.forEach(card => container.appendChild(card));
+}
+</script>
+{% endblock %}

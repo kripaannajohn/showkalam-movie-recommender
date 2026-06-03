@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ShowKaalam - Movie Booking{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #ff6b35;
+            --secondary-color: #004e89;
+            --accent-color: #ffd23f;
+            --dark-bg: #1a1a1a;
+            --card-bg: #2d2d2d;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--dark-bg) 0%, #2c3e50 100%);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        
+        .movie-card {
+            background: var(--card-bg);
+            border-radius: 15px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        
+        .movie-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary-color);
+            box-shadow: 0 15px 35px rgba(255,107,53,0.3);
+        }
+        
+        .movie-poster {
+            height: 300px;
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: white;
+        }
+        
+        .movie-info {
+            padding: 20px;
+        }
+        
+        .movie-title {
+            color: var(--accent-color);
+            font-weight: bold;
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+        
+        .movie-genre {
+            background: var(--primary-color);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        
+        .btn-book {
+            background: linear-gradient(45deg, var(--primary-color), #ff8c42);
+            border: none;
+            border-radius: 25px;
+            padding: 10px 25px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-book:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(255,107,53,0.4);
+        }
+        
+        .hero-section {
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
+                        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600"><rect fill="%23ff6b35" width="1200" height="600"/><circle fill="%23ffd23f" cx="200" cy="150" r="100" opacity="0.3"/><circle fill="%23004e89" cx="800" cy="300" r="150" opacity="0.2"/></svg>');
+            background-size: cover;
+            background-position: center;
+            padding: 100px 0;
+            text-align: center;
+        }
+        
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .hero-subtitle {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            color: var(--accent-color);
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-align: center;
+            margin: 50px 0 30px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .footer {
+            background: var(--dark-bg);
+            padding: 40px 0;
+            margin-top: 50px;
+            border-top: 3px solid var(--primary-color);
+        }
+        
+        .flash-message {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1000;
+            min-width: 300px;
+        }
+        
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .movie-poster {
+                height: 250px;
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('home') }}">
+                <i class="fas fa-film me-2"></i>ShowKaalam
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <!-- Search Bar -->
+                <form class="d-flex me-3" method="GET" action="{{ url_for('search') }}">
+                    <div class="input-group">
+                        <input class="form-control" type="search" name="q" placeholder="Search movies..." 
+                               value="{{ request.args.get('q', '') }}" aria-label="Search">
+                        <button class="btn btn-outline-light" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
+                
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('home') }}">
+                            <i class="fas fa-home me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#movies">
+                            <i class="fas fa-video me-1"></i>Movies
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="filterDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-filter me-1"></i>Filters
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="filterByGenre('All')">All Genres</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="filterByGenre('Thriller')">Thriller</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="filterByGenre('Horror')">Horror</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="filterByGenre('Romance')">Romance</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="filterByGenre('Action')">Action</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="filterByGenre('Comedy')">Comedy</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="filterByGenre('Drama')">Drama</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('booking_history') }}">
+                            <i class="fas fa-history me-1"></i>Booking History
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#contact">
+                            <i class="fas fa-phone me-1"></i>Contact
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show flash-message" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-film me-2"></i>ShowKaalam</h5>
+                    <p class="text-muted">When It's Showtime, It's ShowKaalam - Your gateway to the best Malayalam movies and cinema experience.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <h6>Follow Us</h6>
+                    <div class="social-links">
+                        <a href="#" class="text-primary me-3"><i class="fab fa-facebook fa-lg"></i></a>
+                        <a href="#" class="text-primary me-3"><i class="fab fa-twitter fa-lg"></i></a>
+                        <a href="#" class="text-primary me-3"><i class="fab fa-instagram fa-lg"></i></a>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-4">
+            <div class="text-center text-muted">
+                <p>&copy; 2024 ShowKaalam. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Enhanced JavaScript for filters and search -->
+    <script>
+        // Genre filtering functionality
+        function filterByGenre(genre) {
+            const movieCards = document.querySelectorAll('.movie-card');
+            
+            movieCards.forEach(card => {
+                const genreElement = card.querySelector('.movie-genre');
+                if (genre === 'All' || genreElement.textContent.includes(genre)) {
+                    card.style.display = 'block';
+                    card.style.animation = 'fadeIn 0.5s ease-in';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            // Update active filter
+            const filterDropdown = document.getElementById('filterDropdown');
+            filterDropdown.textContent = `Filters (${genre})`;
+        }
+        
+        // Enhanced search with real-time filtering
+        function enhanceSearch() {
+            const searchInput = document.querySelector('input[name="q"]');
+            const movieCards = document.querySelectorAll('.movie-card');
+            
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                
+                movieCards.forEach(card => {
+                    const title = card.querySelector('.movie-title').textContent.toLowerCase();
+                    const genre = card.querySelector('.movie-genre').textContent.toLowerCase();
+                    const description = card.querySelector('.text-muted').textContent.toLowerCase();
+                    
+                    if (title.includes(searchTerm) || genre.includes(searchTerm) || description.includes(searchTerm)) {
+                        card.style.display = 'block';
+                        card.style.animation = 'fadeIn 0.3s ease-in';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        }
+        
+        // Initialize enhanced features
+        document.addEventListener('DOMContentLoaded', function() {
+            enhanceSearch();
+            
+            // Add fade-in animation CSS
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                
+                .movie-card {
+                    transition: all 0.3s ease;
+                }
+                
+                .search-highlight {
+                    background-color: var(--accent-color);
+                    color: var(--dark-bg);
+                    padding: 2px 4px;
+                    border-radius: 3px;
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>
+

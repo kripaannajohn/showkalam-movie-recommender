@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Home - ShowKaalam{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <h1 class="hero-title">Welcome to ShowKaalam</h1>
+        <p class="hero-subtitle">When It's Showtime, It's ShowKaalam - Experience the magic of Malayalam movies</p>
+        
+        <!-- Search Bar -->
+        <div class="search-container">
+            <form action="{{ url_for('search') }}" method="GET" class="search-form">
+                <div class="input-group">
+                    <input type="text" name="q" class="form-control search-input" 
+                           placeholder="Search for a Malayalam movie..." 
+                           value="{{ search_query or '' }}" required>
+                    <button class="btn btn-search" type="submit">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<!-- Movies Section -->
+<section id="movies" class="py-5">
+    <div class="container">
+        {% if search_query %}
+        <h2 class="section-title">Search Results for "{{ search_query }}"</h2>
+        {% else %}
+        <h2 class="section-title">Now Showing</h2>
+        {% endif %}
+        
+        <div class="row">
+            {% for movie in movies %}
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="movie-card">
+                    <div class="movie-poster">
+                        <i class="fas fa-film"></i>
+                    </div>
+                    <div class="movie-info">
+                        <h3 class="movie-title">{{ movie[1] }}</h3>
+                        <span class="movie-genre">{{ movie[2] }}</span>
+                        <p class="text-muted mb-3">{{ movie[3][:100] }}...</p>
+                        <div class="movie-meta mb-3">
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>{{ movie[6] }} min | 
+                                <i class="fas fa-star me-1"></i>{{ movie[5] }}
+                            </small>
+                        </div>
+                        <div class="movie-actions">
+                            <a href="{{ url_for('movie_details', movie_id=movie[0]) }}" class="btn btn-book btn-sm me-2">
+                                <i class="fas fa-info-circle me-1"></i>Details
+                            </a>
+                            <a href="{{ url_for('get_recommendations', movie_id=movie[0]) }}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-brain me-1"></i>Get Recommendations
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if not movies %}
+        <div class="text-center py-5">
+            <h3>No movies found</h3>
+            <p class="text-muted">Try searching for a different movie or browse all movies</p>
+            <a href="{{ url_for('home') }}" class="btn btn-primary">Browse All Movies</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5" style="background: rgba(255,255,255,0.05);">
+    <div class="container">
+        <h2 class="section-title">Why Choose ShowKaalam?</h2>
+        <div class="row">
+            <div class="col-md-4 text-center mb-4">
+                <div class="feature-icon mb-3">
+                    <i class="fas fa-brain fa-3x text-primary"></i>
+                </div>
+                <h4>AI Recommendations</h4>
+                <p class="text-muted">Get personalized movie recommendations using advanced AI technology.</p>
+            </div>
+            <div class="col-md-4 text-center mb-4">
+                <div class="feature-icon mb-3">
+                    <i class="fas fa-mobile-alt fa-3x text-primary"></i>
+                </div>
+                <h4>Easy Booking</h4>
+                <p class="text-muted">Book your tickets in just a few clicks with our user-friendly interface.</p>
+            </div>
+            <div class="col-md-4 text-center mb-4">
+                <div class="feature-icon mb-3">
+                    <i class="fas fa-qrcode fa-3x text-primary"></i>
+                </div>
+                <h4>QR Tickets</h4>
+                <p class="text-muted">Get instant QR-coded tickets delivered to your device.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Contact Section -->
+<section id="contact" class="py-5">
+    <div class="container">
+        <h2 class="section-title">Contact Us</h2>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="contact-info">
+                    <h5><i class="fas fa-phone me-2"></i>Phone</h5>
+                    <p>+91 9876543210</p>
+                    
+                    <h5><i class="fas fa-envelope me-2"></i>Email</h5>
+                    <p>info@showkaalam.com</p>
+                    
+                    <h5><i class="fas fa-map-marker-alt me-2"></i>Address</h5>
+                    <p>Kochi, Kerala, India</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="contact-form">
+                    <h5>Send us a message</h5>
+                    <form>
+                        <div class="mb-3">
+                            <input type="text" class="form-control" placeholder="Your Name" required>
+                        </div>
+                        <div class="mb-3">
+                            <input type="email" class="form-control" placeholder="Your Email" required>
+                        </div>
+                        <div class="mb-3">
+                            <textarea class="form-control" rows="4" placeholder="Your Message" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-book">
+                            <i class="fas fa-paper-plane me-2"></i>Send Message
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Smooth scrolling for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+
+    // Auto-hide flash messages
+    setTimeout(function() {
+        const alerts = document.querySelectorAll('.flash-message');
+        alerts.forEach(alert => {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        });
+    }, 5000);
+</script>
+{% endblock %}

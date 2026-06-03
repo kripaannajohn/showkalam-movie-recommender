@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}{{ movie[1] }} - ShowKaalam{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Movie Header -->
+    <div class="row mb-5">
+        <div class="col-md-4">
+            <div class="movie-poster-large">
+                <i class="fas fa-film fa-5x"></i>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <h1 class="movie-title-large mb-3">{{ movie[1] }}</h1>
+            <div class="movie-meta mb-4">
+                <span class="badge bg-primary me-2">{{ movie[2] }}</span>
+                <span class="badge bg-success me-2">{{ movie[7] }} Rating</span>
+                <span class="badge bg-info">{{ movie[6] }} min</span>
+            </div>
+            <h5>Director</h5>
+            <p class="text-muted mb-3">{{ movie[4] }}</p>
+            <h5>Cast</h5>
+            <p class="text-muted mb-4">{{ movie[5] }}</p>
+            <h5>Description</h5>
+            <p class="movie-description">{{ movie[3] }}</p>
+            
+            <!-- AI Recommendations Button -->
+            <div class="mt-4">
+                <a href="{{ url_for('get_recommendations', movie_id=movie[0]) }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-brain me-2"></i>Get AI Recommendations
+                </a>
+                <p class="text-muted mt-2">Discover similar movies using AI technology</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Showtimes -->
+    <div class="showtimes-section">
+        <h2 class="section-title">Showtimes & Theatres</h2>
+        <div class="row">
+            {% for showtime in showtimes %}
+            <div class="col-lg-6 col-md-12 mb-4">
+                <div class="showtime-card">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5 class="theatre-name">{{ showtime[4] }}</h5>
+                            <p class="theatre-location text-muted">
+                                <i class="fas fa-map-marker-alt me-1"></i>{{ showtime[5] }}
+                            </p>
+                            <div class="showtime-details">
+                                <span class="show-date">
+                                    <i class="fas fa-calendar me-1"></i>{{ showtime[1] }}
+                                </span>
+                                <span class="show-time ms-3">
+                                    <i class="fas fa-clock me-1"></i>{{ showtime[2] }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <div class="price-info mb-3">
+                                <span class="price">₹{{ showtime[3] }}</span>
+                                <small class="text-muted d-block">per seat</small>
+                            </div>
+                            <a href="{{ url_for('booking', showtime_id=showtime[0]) }}" 
+                               class="btn btn-book">
+                                <i class="fas fa-ticket-alt me-1"></i>Book Seats
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="text-center mt-5">
+        <a href="{{ url_for('home') }}" class="btn btn-outline-primary btn-lg">
+            <i class="fas fa-arrow-left me-2"></i>Back to Movies
+        </a>
+    </div>
+</div>
+
+<style>
+.movie-poster-large {
+    height: 400px;
+    background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 15px;
+    color: white;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.movie-title-large {
+    color: var(--accent-color);
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+
+.movie-description {
+    line-height: 1.6;
+    font-size: 1.1rem;
+}
+
+.showtime-card {
+    background: var(--card-bg);
+    border-radius: 15px;
+    padding: 25px;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.showtime-card:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(255,107,53,0.2);
+}
+
+.theatre-name {
+    color: var(--accent-color);
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.showtime-details {
+    margin-top: 15px;
+}
+
+.show-date, .show-time {
+    color: white;
+    font-weight: 500;
+}
+
+.price {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.showtimes-section {
+    margin-top: 50px;
+}
+
+@media (max-width: 768px) {
+    .movie-title-large {
+        font-size: 2rem;
+    }
+    
+    .movie-poster-large {
+        height: 300px;
+    }
+}
+</style>
+{% endblock %}
+
